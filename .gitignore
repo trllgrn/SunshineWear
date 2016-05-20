@@ -1,4 +1,3 @@
-.gradle
 .DS_Store
 
 # built application files
@@ -26,6 +25,9 @@ build.xml
 ant.properties
 local.properties
 project.properties
+gradle.properties
+
+
 
 # Eclipse project files
 .classpath
@@ -33,7 +35,6 @@ project.properties
 
 # idea project files
 .idea/
-.idea/.name
 *.iml
 *.ipr
 *.iws

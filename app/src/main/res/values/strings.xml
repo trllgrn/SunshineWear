@@ -94,4 +94,12 @@
     <!-- Strings related to Notification preference -->
     <string name="pref_last_notification">last_notification</string>
 
+    <!-- Wear API -->
+    <string name="wear_weather_path">/sunshineWeather</string>
+    <string name="wear_cond_key">com.example.android.sunshine.app.condition_key</string>
+    <string name="wear_hi_key">com.example.android.sunshine.app.hitemp_key</string>
+    <string name="wear_low_key">com.example.android.sunshine.app.lotemp_key</string>
+    <string name="wear_short_desc_key">com.example.android.sunshine.app.desc_key</string>
+    <string name="wear_units_key">com.example.android.sunshine.app.units_key</string>
+
 </resources>

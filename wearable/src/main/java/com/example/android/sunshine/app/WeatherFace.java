@@ -26,15 +26,27 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.Time;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Wearable;
 
 import java.lang.ref.WeakReference;
 import java.util.TimeZone;
@@ -48,6 +60,7 @@ public class WeatherFace extends CanvasWatchFaceService {
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
+    private static final String TAG = "WeatherFace";
     /**
      * Update rate in milliseconds for interactive mode. We update once a second since seconds are
      * displayed in interactive mode.
@@ -84,7 +97,12 @@ public class WeatherFace extends CanvasWatchFaceService {
         }
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine {
+    private class Engine extends CanvasWatchFaceService.Engine
+                         implements DataApi.DataListener,
+                                    GoogleApiClient.ConnectionCallbacks,
+                                    GoogleApiClient.OnConnectionFailedListener {
+
+
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         boolean mRegisteredTimeZoneReceiver = false;
         Paint mBackgroundPaint;
@@ -102,6 +120,18 @@ public class WeatherFace extends CanvasWatchFaceService {
 
         float mXOffset;
         float mYOffset;
+
+        // Wear API data members
+        String mWeatherId;
+        String mTempHi;
+        String mTempLow;
+        String mShortDesc;
+        String mUnitFormat;
+
+        GoogleApiClient mGoogleApiClient = new GoogleApiClient.Builder(WeatherFace.this)
+                                                            .addConnectionCallbacks(this)
+                                                            .addOnConnectionFailedListener(this)
+                                                            .addApi(Wearable.API).build();
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -154,6 +184,8 @@ public class WeatherFace extends CanvasWatchFaceService {
             super.onVisibilityChanged(visible);
 
             if (visible) {
+                mGoogleApiClient.connect();
+
                 registerReceiver();
 
                 // Update time zone in case it changed while we weren't visible.
@@ -161,6 +193,11 @@ public class WeatherFace extends CanvasWatchFaceService {
                 mTime.setToNow();
             } else {
                 unregisterReceiver();
+
+                if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
+                    Wearable.DataApi.removeListener(mGoogleApiClient, this);
+                    mGoogleApiClient.disconnect();
+                }
             }
 
             // Whether the timer should be running depends on whether we're visible (as well as
@@ -299,6 +336,61 @@ public class WeatherFace extends CanvasWatchFaceService {
                         - (timeMs % INTERACTIVE_UPDATE_RATE_MS);
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
+        }
+
+        private void extractWeatherData(DataMap data) {
+            //App Context
+            Context context = getBaseContext();
+            if (data != null) {
+                //Grab the data
+                mWeatherId = data.getString(getString(R.string.wear_cond_key));
+                mTempHi = data.getString(getString(R.string.wear_hi_key));
+                mTempLow = data.getString(getString(R.string.wear_low_key));
+                mShortDesc = data.getString(getString(R.string.wear_short_desc_key));
+                mUnitFormat = data.getString(getString(R.string.wear_units_key));
+
+                Log.d(TAG, "extractWeatherData: received " + "Weather ID: " + mWeatherId);
+                Log.d(TAG, "extractWeatherData: received " + "Hi Temp: " + mTempHi);
+                Log.d(TAG, "extractWeatherData: received " + "Low Temp: " + mTempLow);
+                Log.d(TAG, "extractWeatherData: received " + "Short Desc: " + mShortDesc);
+            }
+        }
+
+        @Override
+        public void onConnected(@Nullable Bundle bundle) {
+            Log.d(TAG, "onConnected: attaching Listener");
+
+            //Attach Listener
+            Wearable.DataApi.addListener(mGoogleApiClient,this);
+        }
+
+        @Override
+        public void onConnectionSuspended(int cause) {
+            Log.d(TAG, "onConnectionSuspended: " + cause);
+        }
+
+        @Override
+        public void onDataChanged(DataEventBuffer dataEvents) {
+            Log.d(TAG, "onDataChanged: ");
+
+            //Attempt to extract Sunshine Data
+            for (DataEvent event : dataEvents) {
+                if (event.getType() == DataEvent.TYPE_CHANGED) {
+                    // DataItem changed
+                    DataItem item = event.getDataItem();
+                    if (item.getUri().getPath().equals(getString(R.string.wear_weather_path))) {
+                        DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
+                        extractWeatherData(dataMap);
+                    }
+                } else if (event.getType() == DataEvent.TYPE_DELETED) {
+                    // DataItem deleted
+                }
+            }
+        }
+
+        @Override
+        public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+            Log.d(TAG, "onConnectionFailed: " + connectionResult);
         }
     }
 }

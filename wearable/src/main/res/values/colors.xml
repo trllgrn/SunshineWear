@@ -3,4 +3,9 @@
     <color name="background">#000000</color>
     <color name="background2">#000088</color>
     <color name="digital_text">#ffffff</color>
+
+    <!--Sunshine Colors-->
+    <color name="sunshine_light_blue">#ff64c2f4</color>
+    <color name="sunshine_blue">#ff1ca8f4</color>
+    <color name="sunshine_dark_blue">#0288D1</color>
 </resources>

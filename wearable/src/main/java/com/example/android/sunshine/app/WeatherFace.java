@@ -26,6 +26,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -40,12 +41,15 @@ import android.view.WindowInsets;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataItemBuffer;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
 
 import java.lang.ref.WeakReference;
@@ -107,6 +111,7 @@ public class WeatherFace extends CanvasWatchFaceService {
         boolean mRegisteredTimeZoneReceiver = false;
         Paint mBackgroundPaint;
         Paint mTextPaint;
+        Paint mTempsPaint;
         boolean mAmbient;
         Time mTime;
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
@@ -120,6 +125,7 @@ public class WeatherFace extends CanvasWatchFaceService {
 
         float mXOffset;
         float mYOffset;
+        float mLineHeight;
 
         // Wear API data members
         String mWeatherId;
@@ -127,6 +133,7 @@ public class WeatherFace extends CanvasWatchFaceService {
         String mTempLow;
         String mShortDesc;
         String mUnitFormat;
+        String localNodeId;
 
         GoogleApiClient mGoogleApiClient = new GoogleApiClient.Builder(WeatherFace.this)
                                                             .addConnectionCallbacks(this)
@@ -156,13 +163,24 @@ public class WeatherFace extends CanvasWatchFaceService {
 
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
 
+            mLineHeight = resources.getDimension(R.dimen.digital_text_size_round);
+
             mBackgroundPaint = new Paint();
-            mBackgroundPaint.setColor(resources.getColor(R.color.background));
+
+            //Set Background color to Sunshine Blue
+            mBackgroundPaint.setColor(resources.getColor(R.color.sunshine_blue));
 
             mTextPaint = new Paint();
             mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
 
+            mTempsPaint = new Paint();
+            mTempsPaint = createTextPaint(resources.getColor(R.color.digital_text));
+
             mTime = new Time();
+
+            //Set Weather Defaults
+            mTempHi = "50°";
+            mTempLow = "50°";
         }
 
         @Override
@@ -235,6 +253,8 @@ public class WeatherFace extends CanvasWatchFaceService {
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
 
             mTextPaint.setTextSize(textSize);
+
+            mTempsPaint.setTextSize(textSize);
         }
 
         @Override
@@ -256,6 +276,8 @@ public class WeatherFace extends CanvasWatchFaceService {
                 mAmbient = inAmbientMode;
                 if (mLowBitAmbient) {
                     mTextPaint.setAntiAlias(!inAmbientMode);
+
+                    mTempsPaint.setAntiAlias(!inAmbientMode);
                 }
                 invalidate();
             }
@@ -304,6 +326,18 @@ public class WeatherFace extends CanvasWatchFaceService {
                     ? String.format("%d:%02d", mTime.hour, mTime.minute)
                     : String.format("%d:%02d:%02d", mTime.hour, mTime.minute, mTime.second);
             canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
+
+            //Go to next line on Face
+
+            //Draw the Hi Temp if it exists
+            if (mTempHi != null && mTempLow != null) {
+                //Make a decent looking Temp string
+                String watchTemps = mTempHi + " | " + mTempLow;
+
+                canvas.drawText(watchTemps, mXOffset, mYOffset + mLineHeight, mTempsPaint);
+            }
+
+            //Draw the Lo Temp if it exists
         }
 
         /**
@@ -361,7 +395,42 @@ public class WeatherFace extends CanvasWatchFaceService {
             Log.d(TAG, "onConnected: attaching Listener");
 
             //Attach Listener
-            Wearable.DataApi.addListener(mGoogleApiClient,this);
+            Wearable.DataApi.addListener(mGoogleApiClient, Engine.this);
+
+            //Get Local Node info
+            Wearable.NodeApi.getLocalNode(mGoogleApiClient).setResultCallback(
+                    new ResultCallback<NodeApi.GetLocalNodeResult>() {
+                            @Override
+                            public void onResult(@NonNull NodeApi.GetLocalNodeResult getLocalNodeResult) {
+                                localNodeId = getLocalNodeResult.getNode().getId();
+                                Log.d(TAG, "onConnected: This Wear Node: " + localNodeId);
+
+                                //Build the Uri
+                                Uri uri = new Uri.Builder()
+                                        .scheme("wear")
+                                        .path(getString(R.string.wear_weather_path))
+                                        .build();
+
+                                Log.d(TAG, "onResult: Built Uri to Query DataApi: " + uri);
+
+                                //Retrieve the DataMap from the DataApi
+                                Wearable.DataApi.getDataItems(mGoogleApiClient).setResultCallback(
+                                        new ResultCallback<DataItemBuffer>() {
+                                            @Override
+                                            public void onResult(@NonNull DataItemBuffer dataItemBuffer ) {
+                                                if (dataItemBuffer.getStatus().isSuccess()) {
+                                                    Log.d(TAG, "onResult: Got a Data Buffer!");
+                                                    Log.d(TAG, "onResult: DataBuffer has " + dataItemBuffer.getCount() + " items.");
+
+                                                }
+                                                dataItemBuffer.release();
+                                            }
+                                        }
+
+                                );
+                            }
+                        });
+
         }
 
         @Override

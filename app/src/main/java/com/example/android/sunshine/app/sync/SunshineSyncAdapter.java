@@ -38,6 +38,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataItemBuffer;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
@@ -395,6 +396,20 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                 Log.d(LOG_TAG, "updateWearable: Sent Low Temp: " + Utility.formatTemperature(context, low));
                 Log.d(LOG_TAG, "updateWearable: Sent Cond Desc: " + desc);
                 Log.d(LOG_TAG, "updateWearable: Sent Unit Format: " + unit_format);
+
+                //Wait for the result
+                DataApi.DataItemResult result = pendingResult.await();
+                if(result.getStatus().isSuccess()) {
+                    Log.d(LOG_TAG, "Data item set: " + result.getDataItem().getUri());
+                }
+
+                PendingResult<DataItemBuffer> dataItems = Wearable.DataApi.getDataItems(mGoogleApiClient);
+
+                DataItemBuffer buffer = dataItems.await();
+
+                Log.d(LOG_TAG, "updateWearable: Wearable Data Items buffer size: " + buffer.getCount());
+
+                buffer.release();
 
 
                 //close DB connection

@@ -370,10 +370,13 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                 String desc = cursor.getString(INDEX_SHORT_DESC);
 
                 //Attempt to push these into the data map
-                PutDataMapRequest putDataMapReq = PutDataMapRequest.create(WEAR_WEATHER_PATH);
+                PutDataMapRequest putDataMapReq = PutDataMapRequest.create(WEAR_WEATHER_PATH).setUrgent();
+                //put time stamp to force onDataChanged callback
+                putDataMapReq.getDataMap().putLong(context.getString(R.string.wear_timestamp), System.currentTimeMillis());
+
                 //put weather condition id
                 putDataMapReq.getDataMap().putInt(context.getString(R.string.wear_cond_key),
-                                                  Utility.getArtResourceForWeatherCondition(weatherId));
+                                                  weatherId);
                 //put high temp
                 putDataMapReq.getDataMap().putString(context.getString(R.string.wear_hi_key),
                                                      Utility.formatTemperature(context, high));
@@ -391,7 +394,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                 PendingResult<DataApi.DataItemResult> pendingResult =
                         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq);
 
-                Log.d(LOG_TAG, "updateWearable: Sent Weather ID: " + Utility.getArtResourceForWeatherCondition(weatherId));
+                Log.d(LOG_TAG, "updateWearable: Sent Weather ID: " + weatherId);
                 Log.d(LOG_TAG, "updateWearable: Sent Hi Temp: " + Utility.formatTemperature(context, high));
                 Log.d(LOG_TAG, "updateWearable: Sent Low Temp: " + Utility.formatTemperature(context, low));
                 Log.d(LOG_TAG, "updateWearable: Sent Cond Desc: " + desc);

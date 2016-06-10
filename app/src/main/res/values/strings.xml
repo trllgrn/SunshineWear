@@ -101,5 +101,6 @@
     <string name="wear_low_key">com.example.android.sunshine.app.lotemp_key</string>
     <string name="wear_short_desc_key">com.example.android.sunshine.app.desc_key</string>
     <string name="wear_units_key">com.example.android.sunshine.app.units_key</string>
+    <string name="wear_timestamp">com.example.android.sunshine.app.timestamp</string>
 
 </resources>

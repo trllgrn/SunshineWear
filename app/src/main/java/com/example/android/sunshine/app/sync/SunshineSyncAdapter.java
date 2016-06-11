@@ -342,7 +342,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
 
     private void updateWearable() {
 
-        Log.d(LOG_TAG, "updateWearable: Started");
+//        Log.d(LOG_TAG, "updateWearable: Started");
         Context context = getContext();
         if (mGoogleApiClient.isConnected()) {
             //location
@@ -362,7 +362,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
 
             //Extract Data
             if (cursor != null && cursor.moveToFirst()) {
-                Log.d(LOG_TAG, "updateWearable: Successfully retreived data fromt the DB");
+//                Log.d(LOG_TAG, "updateWearable: Successfully retreived data fromt the DB");
 
                 int weatherId = cursor.getInt(INDEX_WEATHER_ID);
                 double high = cursor.getDouble(INDEX_MAX_TEMP);
@@ -393,24 +393,24 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                 PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
                 PendingResult<DataApi.DataItemResult> pendingResult =
                         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq);
-
-                Log.d(LOG_TAG, "updateWearable: Sent Weather ID: " + weatherId);
-                Log.d(LOG_TAG, "updateWearable: Sent Hi Temp: " + Utility.formatTemperature(context, high));
-                Log.d(LOG_TAG, "updateWearable: Sent Low Temp: " + Utility.formatTemperature(context, low));
-                Log.d(LOG_TAG, "updateWearable: Sent Cond Desc: " + desc);
-                Log.d(LOG_TAG, "updateWearable: Sent Unit Format: " + unit_format);
+//
+//                Log.d(LOG_TAG, "updateWearable: Sent Weather ID: " + weatherId);
+//                Log.d(LOG_TAG, "updateWearable: Sent Hi Temp: " + Utility.formatTemperature(context, high));
+//                Log.d(LOG_TAG, "updateWearable: Sent Low Temp: " + Utility.formatTemperature(context, low));
+//                Log.d(LOG_TAG, "updateWearable: Sent Cond Desc: " + desc);
+//                Log.d(LOG_TAG, "updateWearable: Sent Unit Format: " + unit_format);
 
                 //Wait for the result
                 DataApi.DataItemResult result = pendingResult.await();
                 if(result.getStatus().isSuccess()) {
-                    Log.d(LOG_TAG, "Data item set: " + result.getDataItem().getUri());
+//                    Log.d(LOG_TAG, "Data item set: " + result.getDataItem().getUri());
                 }
 
                 PendingResult<DataItemBuffer> dataItems = Wearable.DataApi.getDataItems(mGoogleApiClient);
 
                 DataItemBuffer buffer = dataItems.await();
 
-                Log.d(LOG_TAG, "updateWearable: Wearable Data Items buffer size: " + buffer.getCount());
+//                Log.d(LOG_TAG, "updateWearable: Wearable Data Items buffer size: " + buffer.getCount());
 
                 buffer.release();
 
